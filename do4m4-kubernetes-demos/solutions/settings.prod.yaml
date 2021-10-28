@@ -1,0 +1,19 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: env
+  namespace: default
+data:
+  MESSAGE: "Greetings from the production environment"
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: app-data
+  namespace: default
+data:
+  message.txt: |
+    This is a message from production environment
+    and it is stored in a file.
+    This is the file contents.
+    It could have been a config file, or anything.

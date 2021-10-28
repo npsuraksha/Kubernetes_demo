@@ -1,0 +1,125 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello
+  namespace: default
+  labels:
+    app:  hello
+spec:
+  selector:
+    matchLabels:
+      app: hello
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app:  hello
+    spec:
+      containers:
+      - name:  hello
+        image:  andrewjohnburgess/hello:1.0.0
+        ports:
+        - containerPort:  8000
+        env:
+        - name: STARTUP_TIME
+          value: "20"
+        - name: TARGET
+          value: Berlin
+        - name: LAUNCH_CODE
+          valueFrom:
+            secretKeyRef:
+              name: doomsday
+              key: launch-code
+        envFrom:
+        - configMapRef:
+            name: env
+        volumeMounts:
+        - mountPath: /app/data
+          name: app-data
+        startupProbe:
+          periodSeconds: 1
+          failureThreshold: 60
+          httpGet:
+            path: /ready
+            port: 8000
+        livenessProbe:
+          periodSeconds: 3
+          failureThreshold: 1
+          successThreshold: 1
+          httpGet:
+            path: /live
+            port: 8000
+        readinessProbe:
+          periodSeconds: 3
+          failureThreshold: 1
+          initialDelaySeconds: 3
+          successThreshold: 1
+          httpGet:
+            path: /ready
+            port: 8000          
+      volumes:
+      - name: app-data
+        configMap:
+          name: app-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-service
+  namespace: default
+spec:
+  selector:
+    app: hello
+  type: ClusterIP
+  ports:
+  - port: 80 
+    targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-consumer
+  namespace: default
+  labels:
+    app:  hello-consumer
+spec:
+  selector:
+    matchLabels:
+      app: hello-consumer
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app:  hello-consumer
+    spec:
+      containers:
+      - name:  hello-consumer
+        image:  andrewjohnburgess/hello-consumer:1.0.0
+        ports:
+        - containerPort:  8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-consumer-service
+  namespace: default
+spec:
+  selector:
+    app: hello-consumer
+  type: ClusterIP
+  ports:
+  - port: 80 
+    targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-consumer-service-lb
+  namespace: default
+spec:
+  selector:
+    app: hello-consumer
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8000 
